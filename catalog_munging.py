@@ -7,9 +7,12 @@ def make_dataframe(fname):
     try:
         df = pd.read_table(fname, delim_whitespace=True)
     except pd.parser.CParserError:
-        df = pd.read_table(fname, header=27, delim_whitespace=True)
+        try:
+            df = pd.read_table(fname, header=13, delim_whitespace=True)
+        except pd.parser.CParserError:
+            df = pd.read_table(fname, header=27, delim_whitespace=True)
     except:
-        raise ValueError('Unexpected header (expect 1 or 27 rows):\n'+fname)
+        raise ValueError('Unexpected header (expect 1, 14 or 27 rows):\n'+fname)
     df.columns = list(df.columns)[1:]+['nan']
     df = df.drop('nan', axis=1)
     return df
