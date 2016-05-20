@@ -4,7 +4,6 @@ import glob
 
 def make_dataframe(fname):
     """Return a dataframe for specific file."""
-    # how to generalize this for clusters (header=1)?
     try:
         df = pd.read_table(fname, delim_whitespace=True)
     except pd.parser.CParserError:
@@ -16,12 +15,12 @@ def make_dataframe(fname):
     return df
 
 
-def load_all_pointings(field, path='', dropoutsample='u'):
+def load_all_pointings(field, path=''):
     """Return a dictionary of data from all pointings in field."""
     if field not in ['W1', 'W2', 'W3', 'W4']:
         raise ValueError("field must be one of 'W1', 'W2', 'W3', 'W4'")
 
-    files = glob.glob(path+dropoutsample+'*'+field+'*cat')
+    files = glob.glob(path+'*'+field+'*cat')
     data = {}
 
     for f in files:

@@ -26,10 +26,11 @@ def test_column_names():
 
 
 def test_number_pointings():
-    def _check_num(f, d):
-        data = load_all_pointings(f, dropoutsample=d, path=path+d+'drops/')
+    def _check_num(f, dpath):
+        data = load_all_pointings(f, path=dpath)
         assert_equal(len(data), fields[f])
 
     for field in fields.keys():
         for dropout in ['u', 'g']:
-            yield _check_num, field, dropout
+            dropoutpath = path+dropout+'drops/'
+            yield _check_num, field, dropoutpath
