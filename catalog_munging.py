@@ -4,7 +4,13 @@ import glob
 
 def make_dataframe(fname):
     """Return a dataframe for specific file."""
-    df = pd.read_table(fname, header=27, delim_whitespace=True)
+    # how to generalize this for clusters (header=1)?
+    try:
+        df = pd.read_table(fname, delim_whitespace=True)
+    except pd.parser.CParserError:
+        df = pd.read_table(fname, header=27, delim_whitespace=True)
+    except:
+        raise ValueError('Unexpected header (expect 1 or 27 rows):\n'+fname)
     df.columns = list(df.columns)[1:]+['nan']
     df = df.drop('nan', axis=1)
     return df
