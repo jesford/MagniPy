@@ -1,3 +1,4 @@
+"""Functions specific to reading & loading the CFHTLenS formatted data."""
 import pandas as pd
 import glob
 
