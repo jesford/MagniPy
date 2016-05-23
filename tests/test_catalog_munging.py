@@ -9,6 +9,7 @@ fields = {'W1': 72, 'W2': 25, 'W3': 49, 'W4': 25}
 basepath = '/Users/jesford/astrophysics/data/cfhtls/'
 spath = basepath+'LBGS/WIDE/'
 cpath = basepath+'clusters/WIDE/'
+rpath = basepath+'randoms/'
 sample_pointings = ['W1m2p1', 'W2p3m0', 'W3m0p2', 'W4m1p3']
 
 
@@ -18,19 +19,23 @@ def test_column_names():
                        'dmag_r', 'dmag_i', 'dmag_z']
     expect_cluster_cols = ['RA', 'DEC', 'z', 'sig', 'x[0]', 'x[1]', 'm200',
                            'r200', 'n200']
+    expect_random_cols = ['x[0]', 'x[1]']
 
-    def _check_names(p, dpath):
+    def _check_names(p, dpath, h):
         if 'clusters' in dpath:
             expect_cols = expect_cluster_cols
+        elif 'randoms' in dpath:
+            expect_cols = expect_random_cols
         else:
             expect_cols = expect_LBG_cols
-        fname = glob.glob(dpath+'*'+p+'*cat')[0]
-        df = make_dataframe(fname)
+        fname = glob.glob(dpath+'*'+p+'*')[0]
+        df = make_dataframe(fname, header=h)
         assert_equal(list(df.columns), expect_cols)
 
     for pointing in sample_pointings:
-        for datapath in [spath+'udrops/', spath+'gdrops/', cpath]:
-            yield _check_names, pointing, datapath
+        for datapath, h in zip([spath+'udrops/', spath+'gdrops/', cpath, rpath],
+                               [27, 27, 13, None]):
+            yield _check_names, pointing, datapath, h
 
 
 def test_number_pointings():
@@ -39,5 +44,5 @@ def test_number_pointings():
         assert_equal(len(data), fields[f])
 
     for field in fields.keys():
-        for datapath in [spath+'udrops/', spath+'gdrops/', cpath]:
+        for datapath in [spath+'udrops/', spath+'gdrops/', cpath, rpath]:
             yield _check_num, field, datapath
