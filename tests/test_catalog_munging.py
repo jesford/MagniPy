@@ -1,8 +1,10 @@
-from numpy.testing import assert_equal
-# , assert_allclose, assert_raises
+from numpy.testing import assert_equal, assert_raises
+# , assert_allclose
 import glob
+import numpy as np
 
-from ..catalog_munging import make_dataframe, load_all_pointings
+from ..catalog_munging import make_dataframe, load_all_pointings, pix2rad, \
+    get_catalogs
 
 
 fields = {'W1': 72, 'W2': 25, 'W3': 49, 'W4': 25}
@@ -46,3 +48,24 @@ def test_number_pointings():
     for field in fields.keys():
         for datapath in [spath+'udrops/', spath+'gdrops/', cpath, rpath]:
             yield _check_num, field, datapath
+
+
+def test_pix2rad():
+    def _check_rad(p, r, s):
+        print('p, r, s', p, r, s)
+        rad = pix2rad(p, scale=s)
+        print('rad', rad)
+        assert_equal(rad, r)
+
+    input_pixels = [0.0, 180 * 60 / np.pi]
+    output_radians = {'pointings': [0.0, 0.0031],
+                      'mosaic': [0.0, 0.0166667]}
+    for i, pix in enumerate(input_pixels):
+        for scale in ['pointings', 'mosaic']:
+            yield _check_rad, pix, output_radians[scale][i], scale
+
+    def _check_badinputs(in1, in2):
+        assert_raises(ValueError, pix2rad, in1, in2)
+    
+    for v1, v2 in zip([10., -1], ['pointing', 'pointings']):
+        yield _check_badinputs, v1, v2
