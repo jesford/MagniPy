@@ -6,7 +6,7 @@ import pandas as pd
 
 
 from ..catalog_munging import make_dataframe, load_all_pointings, pix2rad, \
-    get_catalogs
+    get_catalog
 
 
 fields = {'W1': 72, 'W2': 25, 'W3': 49, 'W4': 25}
@@ -74,28 +74,20 @@ def test_pix2rad():
         yield _check_badinputs, v1, v2
 
 
-def test_get_catalogs():
-    def _check_dfs_are_None():
-        result = get_catalogs(None, None, None, redshift=0.2)
-        assert_equal(result, (None, None, None))
+def test_get_catalog():
+    df_zeros = pd.DataFrame(np.zeros([3, 4]),
+                            columns=['x[0]', 'x[1]', 'z', 'am1'])
 
-    def _check_redshift_is_None():
-        assert_raises(ValueError, get_catalogs, None, None, None)
+    def _check_df_is_None():
+        assert_raises(ValueError, get_catalog, None)
+    yield _check_df_is_None
 
-    yield _check_redshift_is_None
-    yield _check_dfs_are_None
+    def _check_redshift_is_None(df):
+        assert_raises(ValueError, get_catalog, df)
+    yield _check_redshift_is_None, df_zeros
 
-    def _check_zeros(df, i):
-        df1, df2, df3 = None, None, None
-        if i == 0:
-            df1 = df
-        elif i == 1:
-            df2 = df
-        elif i == 2:
-            df3 = df
-        result = get_catalogs(df_lens=df1, df_weight=df2, df=df3, redshift=0.0)
-        assert_equal(result[i].x, np.zeros(3))
+    def _check_zeros(df):
+        result = get_catalog(df, z_lens=0.0)
+        assert_equal(result.x, np.zeros(3))
 
-    df = pd.DataFrame(np.zeros([3, 4]), columns=['x[0]', 'x[1]', 'z', 'am1'])
-    for i in range(0, 3):
-        yield _check_zeros, df, i
+    yield _check_zeros, df_zeros

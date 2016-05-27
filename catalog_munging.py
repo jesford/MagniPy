@@ -58,62 +58,37 @@ def pix2rad(arr_pix, scale='pointings'):
     return arr_rad
 
 
-def get_lens_catalog(df, redshift=None):
-    """Return TreeCorr Catalog in Mpc for lenses."""
-
-    dA_lens = cosmo.angular_diameter_distance(redshift)
-
-    if type(df) != pd.core.frame.DataFrame:
-        raise TypeError('df must be a dataframe')
-    cdf_zslice = df[np.isclose(df.z, redshift)]
-    x_lens_mpc = pix2rad(cdf_zslice['x[0]']) * dA_lens
-    y_lens_mpc = pix2rad(cdf_zslice['x[1]']) * dA_lens
-    lens_cat = treecorr.Catalog(x=x_lens_mpc, y=y_lens_mpc)
-
-    return lens_cat
-
-
-def get_nonlens_catalog(df, weight=None, shear=False, redshift=None):
-    """Return TreeCorr Catalog in Mpc for non-lenses."""
-    dA_lens = cosmo.angular_diameter_distance(redshift)
-    if type(df) != pd.core.frame.DataFrame:
-        raise TypeError('df must be a dataframe')
-
-    x_mpc = pix2rad(df['x[0]']) * dA_lens
-    y_mpc = pix2rad(df['x[1]']) * dA_lens
-
-    if shear is True:
-        # insert function to select on zphot & P(z) conditions
-        cat = treecorr.Catalog(x=x_mpc, y=y_mpc, g1=df['e[0]'], g2=df['e[1]'])
+def get_catalog(df, weights=None, shear=False, lens=False, z_lens=None):
+    """Return TreeCorr Catalog in Mpc."""
+    if z_lens is None:
+        raise ValueError('must enter a value for z_lens')
     else:
+        dA_lens = cosmo.angular_diameter_distance(z_lens)
+    if type(df) != pd.core.frame.DataFrame:
+        raise TypeError('df must be a dataframe')
+
+    if lens is True:
+        cdf_zslice = df[np.isclose(df.z, z_lens)]
+        x_lens_mpc = pix2rad(cdf_zslice['x[0]']) * dA_lens
+        y_lens_mpc = pix2rad(cdf_zslice['x[1]']) * dA_lens
+        cat = treecorr.Catalog(x=x_lens_mpc, y=y_lens_mpc)
+
+    elif shear is True:
+        # insert function to select on zphot & P(z) conditions
+        # sdf_z = df[df.zphot > z_lens && 90% P(z) above z_lens]
+        x_shear_mpc = pix2rad(df['x[0]']) * dA_lens  # tbr
+        y_shear_mpc = pix2rad(df['x[1]']) * dA_lens  # tbr
+
+        cat = treecorr.Catalog(x=x_shear_mpc, y=y_shear_mpc,
+                               g1=df['e[0]'], g2=df['e[1]'])
+    else:
+        x_mpc = pix2rad(df['x[0]']) * dA_lens
+        y_mpc = pix2rad(df['x[1]']) * dA_lens
         cat = treecorr.Catalog(x=x_mpc, y=y_mpc)
 
-    if weight is not None:
-        cat.k = df[weight]
+    if weights is not None:
+        cat.k = np.ones(df.shape[0])
+        for w in weights:
+            cat.k *= df[w].values
 
     return cat
-
-
-def get_catalogs(df_lens=None, df_weight=None, df=None, redshift=None):
-    """Return TreeCorr Catalog objects in Mpc for each dataframe."""
-    if redshift is None:
-        raise ValueError('must enter a redshift')
-
-    if df_lens is not None:
-        lenses = get_lens_catalog(df_lens, redshift=redshift)
-    else:
-        lenses = None
-
-    if df_weight is not None:
-        sources = get_nonlens_catalog(df_weight, weight='am1',
-                                      redshift=redshift)
-    else:
-        sources = None
-
-    if df is not None:
-        randoms = get_nonlens_catalog(df, redshift=redshift)
-    else:
-        randoms = None
-
-    # better way to return variables than some nones?
-    return lenses, sources, randoms
