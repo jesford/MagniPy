@@ -58,24 +58,40 @@ def pix2rad(arr_pix, scale='pointings'):
     return arr_rad
 
 
-def get_catalogs(cdf, udf, rdf, redshift=None):
+def get_catalogs(df_lens=None, df_weight=None, df=None, redshift=None):
     """Return TreeCorr Catalog objects in Mpc for each dataframe."""
     if redshift is None:
         raise ValueError('redshift must be a non-negative float')
 
     dA_lens = cosmo.angular_diameter_distance(redshift)
 
-    cdf_zslice = cdf[np.isclose(cdf.z, redshift)]
+    if df_lens is not None:
+        if type(df_lens) != pd.core.frame.DataFrame:
+            raise TypeError('cdf must be a dataframe')
+        cdf_zslice = df_lens[np.isclose(df_lens.z, redshift)]
+        x_lens_mpc = pix2rad(cdf_zslice['x[0]']) * dA_lens
+        y_lens_mpc = pix2rad(cdf_zslice['x[1]']) * dA_lens
+        lenses = treecorr.Catalog(x=x_lens_mpc, y=y_lens_mpc)
+    else:
+        lenses = None
 
-    x_lens_mpc = pix2rad(cdf_zslice['x[0]']) * dA_lens
-    y_lens_mpc = pix2rad(cdf_zslice['x[1]']) * dA_lens
-    x_source_mpc = pix2rad(udf['x[0]']) * dA_lens
-    y_source_mpc = pix2rad(udf['x[1]']) * dA_lens
-    x_rand_mpc = pix2rad(rdf['x[0]']) * dA_lens
-    y_rand_mpc = pix2rad(rdf['x[1]']) * dA_lens
+    if df_weight is not None:
+        if type(df_weight) != pd.core.frame.DataFrame:
+            raise TypeError('df_weight must be a dataframe')
+        x_source_mpc = pix2rad(df_weight['x[0]']) * dA_lens
+        y_source_mpc = pix2rad(df_weight['x[1]']) * dA_lens
+        sources = treecorr.Catalog(x=x_source_mpc, y=y_source_mpc,
+                                   k=df_weight.am1)
+    else:
+        sources = None
 
-    lenses = treecorr.Catalog(x=x_lens_mpc, y=y_lens_mpc)
-    sources = treecorr.Catalog(x=x_source_mpc, y=y_source_mpc, k=udf.am1)
-    randoms = treecorr.Catalog(x=x_rand_mpc, y=y_rand_mpc)
+    if df is not None:
+        if type(df) != pd.core.frame.DataFrame:
+            raise TypeError('df must be a dataframe')
+        x_rand_mpc = pix2rad(df['x[0]']) * dA_lens
+        y_rand_mpc = pix2rad(df['x[1]']) * dA_lens
+        randoms = treecorr.Catalog(x=x_rand_mpc, y=y_rand_mpc)
+    else:
+        randoms = None
 
     return lenses, sources, randoms
