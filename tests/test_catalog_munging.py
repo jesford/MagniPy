@@ -75,19 +75,28 @@ def test_pix2rad():
 
 
 def test_get_catalog():
-    df_zeros = pd.DataFrame(np.zeros([3, 4]),
-                            columns=['x[0]', 'x[1]', 'z', 'am1'])
+    df_zeros = pd.DataFrame(np.zeros([3, 6]), columns=['x[0]', 'x[1]', 'z',
+                                                       'am1', 'e[0]', 'e[1]'])
+    arr1234 = np.ones([3, 6])
+    for i in range(1, arr1234.shape[1]):
+        arr1234[:, i] *= (i + 1)
+    df_1234 = pd.DataFrame(arr1234, columns=['x[0]', 'x[1]', 'z',
+                                             'am1', 'e[0]', 'e[1]'])
 
-    def _check_df_is_None():
-        assert_raises(ValueError, get_catalog, None)
-    yield _check_df_is_None
+    yield assert_raises, ValueError, get_catalog, None
+    yield assert_raises, ValueError, get_catalog, df_zeros
 
-    def _check_redshift_is_None(df):
-        assert_raises(ValueError, get_catalog, df)
-    yield _check_redshift_is_None, df_zeros
-
-    def _check_zeros(df):
-        result = get_catalog(df, z_lens=0.0)
+    def _check_zeros(df, l, s):
+        result = get_catalog(df, z_lens=0.0, lens=l, shear=s)
         assert_equal(result.x, np.zeros(3))
+    for lens in [True, False]:
+        for shear in [True, False]:
+            yield _check_zeros, df_zeros, lens, shear
 
-    yield _check_zeros, df_zeros
+    def _check_weight_am1s(df, ntimes, s):
+        result = get_catalog(df, weights=['am1']*ntimes, z_lens=0.0, shear=s)
+        assert_equal(result.k, np.ones(3)*(4**ntimes))
+
+    for i in range(1, 4):
+        for shear in [True, False]:
+            yield _check_weight_am1s, df_1234, i, shear
