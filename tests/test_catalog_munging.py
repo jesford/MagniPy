@@ -2,6 +2,8 @@ from numpy.testing import assert_equal, assert_raises
 # , assert_allclose
 import glob
 import numpy as np
+import pandas as pd
+
 
 from ..catalog_munging import make_dataframe, load_all_pointings, pix2rad, \
     get_catalogs
@@ -60,12 +62,40 @@ def test_pix2rad():
     input_pixels = [0.0, 180 * 60 / np.pi]
     output_radians = {'pointings': [0.0, 0.0031],
                       'mosaic': [0.0, 0.0166667]}
+
     for i, pix in enumerate(input_pixels):
         for scale in ['pointings', 'mosaic']:
             yield _check_rad, pix, output_radians[scale][i], scale
 
     def _check_badinputs(in1, in2):
         assert_raises(ValueError, pix2rad, in1, in2)
-    
+
     for v1, v2 in zip([10., -1], ['pointing', 'pointings']):
         yield _check_badinputs, v1, v2
+
+
+def test_get_catalogs():
+    def _check_dfs_are_None():
+        result = get_catalogs(None, None, None, redshift=0.2)
+        assert_equal(result, (None, None, None))
+
+    def _check_redshift_is_None():
+        assert_raises(ValueError, get_catalogs, None, None, None)
+
+    yield _check_redshift_is_None
+    yield _check_dfs_are_None
+
+    def _check_zeros(df, i):
+        df1, df2, df3 = None, None, None
+        if i == 0:
+            df1 = df
+        elif i == 1:
+            df2 = df
+        elif i == 2:
+            df3 = df
+        result = get_catalogs(df_lens=df1, df_weight=df2, df=df3, redshift=0.0)
+        assert_equal(result[i].x, np.zeros(3))
+
+    df = pd.DataFrame(np.zeros([3, 4]), columns=['x[0]', 'x[1]', 'z', 'am1'])
+    for i in range(0, 3):
+        yield _check_zeros, df, i
